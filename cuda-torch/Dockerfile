@@ -1,14 +1,18 @@
-FROM nvidia/cuda:12.9.1-devel-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:12.9.1-devel-ubuntu22.04
 
 ARG TORCH_VERSION=2.8.0
 ARG TORCHVISION_VERSION=0.23.0
 ARG TORCHAUDIO_VERSION=2.8.0
+ARG NEOVIM_VERSION=0.11.6
+ARG LAZYGIT_VERSION=0.61.1
 ARG USERNAME=illus
 ARG USER_UID=1000
 ARG USER_GID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive \
     CCACHE_DIR=/home/${USERNAME}/.cache/ccache \
+    EDITOR=nvim \
+    GIT_EDITOR=nvim \
     HOME=/home/${USERNAME} \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -16,10 +20,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     SHELL=/usr/bin/zsh \
-    USER=${USERNAME}
+    USER=${USERNAME} \
+    VISUAL=nvim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+COPY utils/ /tmp/docker-utils/
+
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
         build-essential \
         ca-certificates \
         ccache \
@@ -52,7 +59,12 @@ RUN apt-get update \
         vim \
         zip \
         zsh \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+RUN chmod +x /tmp/docker-utils/*.sh \
+    && NEOVIM_VERSION="${NEOVIM_VERSION}" /tmp/docker-utils/install_neovim.sh \
+    && LAZYGIT_VERSION="${LAZYGIT_VERSION}" /tmp/docker-utils/install_lazygit.sh
 
 RUN python -m pip install --upgrade pip setuptools wheel \
     && python -m pip install \
@@ -61,14 +73,8 @@ RUN python -m pip install --upgrade pip setuptools wheel \
         "torchvision==${TORCHVISION_VERSION}" \
         "torchaudio==${TORCHAUDIO_VERSION}"
 
-RUN if ! getent group "${USER_GID}" >/dev/null; then groupadd --gid "${USER_GID}" "${USERNAME}"; fi \
-    && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /usr/bin/zsh "${USERNAME}" \
-    && mkdir -p "/home/${USERNAME}/workspace" "/home/${USERNAME}/.cache/ccache" \
-    && chown -R "${USER_UID}:${USER_GID}" "/home/${USERNAME}/workspace" "/home/${USERNAME}/.cache" \
-    && printf '%s\n' 'PROMPT="%n@%m:%~%# "' > "/home/${USERNAME}/.zshrc" \
-    && chown "${USER_UID}:${USER_GID}" "/home/${USERNAME}/.zshrc" \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/${USERNAME}" \
-    && chmod 0440 "/etc/sudoers.d/${USERNAME}"
+RUN USERNAME="${USERNAME}" USER_UID="${USER_UID}" USER_GID="${USER_GID}" /tmp/docker-utils/setup_user_env.sh \
+    && rm -rf /tmp/docker-utils
 
 WORKDIR /home/${USERNAME}/workspace
 

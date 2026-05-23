@@ -5,8 +5,10 @@ set -Eeuo pipefail
 
 readonly SCRIPT_PATH="${BASH_SOURCE[0]}"
 readonly SCRIPT_NAME="${SCRIPT_PATH##*/}"
+readonly DEFAULT_PROXY_URL="http://host.docker.internal:7890"
 
 IMAGE_NAME=""
+USE_PROXY=0
 
 fct_get_script_dir() {
     local source="${SCRIPT_PATH}"
@@ -29,10 +31,12 @@ Usage:
 
 Options:
   -n, --name <folder-name>  Folder to build and image tag to create
+      --proxy               Use host.docker.internal:7890 for docker build proxy
   -h, --help                Show this help and exit
 
 Example:
   ${SCRIPT_NAME} -n cuda-torch
+  ${SCRIPT_NAME} -n cuda-torch --proxy
 EOF
 }
 
@@ -56,6 +60,10 @@ fct_parse_args() {
             IMAGE_NAME="${2}"
             shift 2
             ;;
+        --proxy)
+            USE_PROXY=1
+            shift
+            ;;
         -h | --help)
             fct_usage
             exit 0
@@ -70,6 +78,11 @@ fct_parse_args() {
 fct_build_image() {
     local context_dir="${SCRIPT_DIR}/${IMAGE_NAME}"
     local dockerfile_path="${context_dir}/Dockerfile"
+    local -a docker_command=()
+    local -a proxy_vars=(
+        http_proxy https_proxy all_proxy
+    )
+    local proxy_name=""
 
     if [[ -z "${IMAGE_NAME}" ]]; then
         fct_usage
@@ -86,7 +99,17 @@ fct_build_image() {
     fi
 
     printf 'Building Docker image: %s\n' "${IMAGE_NAME}" >&2
-    docker build -t "${IMAGE_NAME}" "${context_dir}"
+    docker_command=(docker build -t "${IMAGE_NAME}" -f "${dockerfile_path}")
+
+    if [[ "${USE_PROXY}" -eq 1 ]]; then
+        for proxy_name in "${proxy_vars[@]}"; do
+            docker_command+=(--build-arg "${proxy_name}=${DEFAULT_PROXY_URL}")
+        done
+        printf 'Using docker build proxy: %s\n' "${DEFAULT_PROXY_URL}" >&2
+    fi
+
+    docker_command+=("${SCRIPT_DIR}")
+    "${docker_command[@]}"
 }
 
 main() {
