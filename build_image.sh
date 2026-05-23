@@ -8,6 +8,7 @@ readonly SCRIPT_NAME="${SCRIPT_PATH##*/}"
 readonly DEFAULT_PROXY_URL="http://host.docker.internal:7890"
 
 IMAGE_NAME=""
+TORCH_VARIANT="cpu"
 USE_PROXY=0
 
 fct_get_script_dir() {
@@ -31,11 +32,13 @@ Usage:
 
 Options:
   -n, --name <folder-name>  Folder to build and image tag to create
+      --torch-variant TYPE  PyTorch variant: cpu or cuda (default: cpu)
       --proxy               Use host.docker.internal:7890 for docker build proxy
   -h, --help                Show this help and exit
 
 Example:
   ${SCRIPT_NAME} -n cuda-torch
+  ${SCRIPT_NAME} -n cuda-torch --torch-variant cuda
   ${SCRIPT_NAME} -n cuda-torch --proxy
 EOF
 }
@@ -63,6 +66,20 @@ fct_parse_args() {
         --proxy)
             USE_PROXY=1
             shift
+            ;;
+        --torch-variant)
+            if [[ $# -lt 2 ]]; then
+                fct_die "Option ${1} requires cpu or cuda."
+            fi
+            case "${2}" in
+            cpu | cuda)
+                TORCH_VARIANT="${2}"
+                ;;
+            *)
+                fct_die "Unsupported torch variant: ${2}. Use cpu or cuda."
+                ;;
+            esac
+            shift 2
             ;;
         -h | --help)
             fct_usage
@@ -99,7 +116,8 @@ fct_build_image() {
     fi
 
     printf 'Building Docker image: %s\n' "${IMAGE_NAME}" >&2
-    docker_command=(docker build -t "${IMAGE_NAME}" -f "${dockerfile_path}")
+    printf 'PyTorch variant: %s\n' "${TORCH_VARIANT}" >&2
+    docker_command=(docker build -t "${IMAGE_NAME}" -f "${dockerfile_path}" --build-arg "TORCH_VARIANT=${TORCH_VARIANT}")
 
     if [[ "${USE_PROXY}" -eq 1 ]]; then
         for proxy_name in "${proxy_vars[@]}"; do

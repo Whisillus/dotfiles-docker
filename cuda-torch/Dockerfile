@@ -3,6 +3,8 @@ FROM nvcr.io/nvidia/cuda:12.9.1-devel-ubuntu22.04
 ARG TORCH_VERSION=2.8.0
 ARG TORCHVISION_VERSION=0.23.0
 ARG TORCHAUDIO_VERSION=2.8.0
+ARG TORCH_VARIANT=cpu
+ARG TORCH_CUDA_FLAVOR=cu128
 ARG NEOVIM_VERSION=0.11.6
 ARG LAZYGIT_VERSION=0.61.1
 ARG USERNAME=illus
@@ -66,9 +68,15 @@ RUN chmod +x /tmp/docker-utils/*.sh \
     && NEOVIM_VERSION="${NEOVIM_VERSION}" /tmp/docker-utils/install_neovim.sh \
     && LAZYGIT_VERSION="${LAZYGIT_VERSION}" /tmp/docker-utils/install_lazygit.sh
 
-RUN python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install \
-        --index-url https://download.pytorch.org/whl/cpu \
+RUN set -eux; \
+    python -m pip install --upgrade pip setuptools wheel; \
+    case "${TORCH_VARIANT}" in \
+        cpu) torch_index_url="https://download.pytorch.org/whl/cpu" ;; \
+        cuda) torch_index_url="https://download.pytorch.org/whl/${TORCH_CUDA_FLAVOR}" ;; \
+        *) echo "Unsupported TORCH_VARIANT: ${TORCH_VARIANT}" >&2; exit 1 ;; \
+    esac; \
+    python -m pip install \
+        --index-url "${torch_index_url}" \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         "torchaudio==${TORCHAUDIO_VERSION}"
