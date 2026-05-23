@@ -1,0 +1,24 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Editor swap and backup files
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.*
+credentials.*
+
+# Logs and temporary files
+*.log
+logs/
+.cache/
+.tmp/
+tmp/
