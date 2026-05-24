@@ -35,6 +35,10 @@ export GIT_EDITOR=nvim
 alias vi='nvim'
 alias vim='nvim'
 alias lg='lazygit'
+alias ls='ls --color=auto'
+alias ll='ls -alF'
+alias l='ll'
+alias s='ls'
 
 PROMPT="%n@%m:%~%# "
 EOF
@@ -47,6 +51,10 @@ export GIT_EDITOR=nvim
 alias vi='nvim'
 alias vim='nvim'
 alias lg='lazygit'
+alias ls='ls --color=auto'
+alias ll='ls -alF'
+alias l='ll'
+alias s='ls'
 EOF
 }
 

@@ -138,9 +138,6 @@ fct_launch_container() {
     if ! command -v docker >/dev/null 2>&1; then
         fct_die "docker command not found."
     fi
-    if ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-        fct_die "Docker image not found: ${IMAGE_NAME}"
-    fi
 
     resolved_project_dir="$(fct_resolve_project_dir "${PROJECT_DIR}")"
     project_basename="${resolved_project_dir##*/}"
