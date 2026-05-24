@@ -19,9 +19,15 @@ fct_create_user() {
         groupadd --gid "${USER_GID}" "${USERNAME}"
     fi
 
-    if ! id --user "${USERNAME}" >/dev/null 2>&1; then
-        useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /usr/bin/zsh "${USERNAME}"
+    if id --user "${USERNAME}" >/dev/null 2>&1; then
+        return 0
     fi
+
+    if getent passwd "${USER_UID}" >/dev/null; then
+        fct_die "USER_UID already exists in the image: ${USER_UID}"
+    fi
+
+    useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /usr/bin/zsh "${USERNAME}"
 }
 
 fct_write_shell_config() {
@@ -136,14 +142,7 @@ fct_prepare_home() {
 fct_fix_ownership() {
     local home_dir="/home/${USERNAME}"
 
-    chown -R "${USER_UID}:${USER_GID}" \
-        "${home_dir}/workspace" \
-        "${home_dir}/.cache" \
-        "${home_dir}/.config" \
-        "${home_dir}/.ssh" \
-        "${home_dir}/.bashrc" \
-        "${home_dir}/.gitconfig" \
-        "${home_dir}/.zshrc"
+    chown -R "${USER_UID}:${USER_GID}" "${home_dir}"
 }
 
 fct_validate_inputs() {

@@ -6,6 +6,7 @@ set -Eeuo pipefail
 readonly SCRIPT_PATH="${BASH_SOURCE[0]}"
 readonly SCRIPT_NAME="${SCRIPT_PATH##*/}"
 readonly CONTAINER_WORKSPACE_ROOT="${CONTAINER_WORKSPACE_ROOT:-/home/illus/workspace}"
+readonly CONTAINER_TERM="${CONTAINER_TERM:-xterm-256color}"
 
 ENABLE_GPU=0
 CONTAINER_NAME="dev-env"
@@ -154,7 +155,8 @@ fct_launch_container() {
         DOCKER_COMMAND+=(--gpus all)
     fi
     DOCKER_COMMAND+=(
-        -e "TERM=${TERM:-xterm-256color}"
+        # Use a common terminfo entry so zsh line editing works in minimal images.
+        -e "TERM=${CONTAINER_TERM}"
         -v "${resolved_project_dir}:${container_workdir}"
         -w "${container_workdir}"
     )
