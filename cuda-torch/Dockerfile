@@ -55,6 +55,7 @@ RUN apt-get -o Acquire::Retries=5 update \
         python3-pip \
         python3-venv \
         python-is-python3 \
+        ripgrep \
         rsync \
         sudo \
         tmux \
@@ -82,6 +83,8 @@ RUN set -eux; \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
         "torchaudio==${TORCHAUDIO_VERSION}"
+
+RUN /tmp/docker-utils/install_opencode.sh
 
 RUN USERNAME="${USERNAME}" USER_UID="${USER_UID}" USER_GID="${USER_GID}" /tmp/docker-utils/setup_user_env.sh \
     && rm -rf /tmp/docker-utils

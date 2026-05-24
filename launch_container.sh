@@ -5,6 +5,7 @@ set -Eeuo pipefail
 
 readonly SCRIPT_PATH="${BASH_SOURCE[0]}"
 readonly SCRIPT_NAME="${SCRIPT_PATH##*/}"
+readonly CONTAINER_OPENCODE_CONFIG_DIR="${CONTAINER_OPENCODE_CONFIG_DIR:-/home/illus/.config/opencode}"
 readonly CONTAINER_WORKSPACE_ROOT="${CONTAINER_WORKSPACE_ROOT:-/home/illus/workspace}"
 readonly CONTAINER_TERM="${CONTAINER_TERM:-xterm-256color}"
 
@@ -130,6 +131,27 @@ fct_append_ssh_args() {
     )
 }
 
+fct_append_opencode_config_args() {
+    local host_config_dir=""
+
+    if [[ -n "${HOST_OPENCODE_CONFIG_DIR:-}" ]]; then
+        host_config_dir="${HOST_OPENCODE_CONFIG_DIR}"
+    elif [[ -n "${HOME:-}" ]]; then
+        host_config_dir="${HOME}/.config/opencode"
+    else
+        fct_die "HOME is not set; cannot locate opencode config."
+    fi
+
+    if [[ ! -d "${host_config_dir}" ]]; then
+        fct_die "opencode config directory not found: ${host_config_dir}"
+    fi
+
+    DOCKER_COMMAND+=(
+        --mount "type=bind,src=${host_config_dir},target=${CONTAINER_OPENCODE_CONFIG_DIR}"
+    )
+    printf 'Mounting opencode config: %s -> %s\n' "${host_config_dir}" "${CONTAINER_OPENCODE_CONFIG_DIR}" >&2
+}
+
 fct_launch_container() {
     local container_workdir=""
     local container_id=""
@@ -163,6 +185,7 @@ fct_launch_container() {
     if [[ "${ENABLE_SSH}" -eq 1 ]]; then
         fct_append_ssh_args
     fi
+    fct_append_opencode_config_args
     DOCKER_COMMAND+=("${IMAGE_NAME}")
 
     printf 'Launching Docker image: %s\n' "${IMAGE_NAME}" >&2

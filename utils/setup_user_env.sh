@@ -134,7 +134,7 @@ fct_prepare_home() {
     mkdir -p \
         "${home_dir}/workspace" \
         "${home_dir}/.cache/ccache" \
-        "${home_dir}/.config" \
+        "${home_dir}/.config/opencode" \
         "${home_dir}/.ssh"
     chmod 700 "${home_dir}/.ssh"
 }
