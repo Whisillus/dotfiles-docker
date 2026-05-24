@@ -27,7 +27,6 @@ Usage:
   ${SCRIPT_NAME}
 
 Installs:
-  build_image.sh
   launch_container.sh
 
 Target:
@@ -118,7 +117,6 @@ fct_configure_path() {
 fct_install_helpers() {
     mkdir -p "${INSTALL_DIR}"
 
-    fct_install_script "build_image.sh"
     fct_install_script "launch_container.sh"
     fct_configure_path
 }

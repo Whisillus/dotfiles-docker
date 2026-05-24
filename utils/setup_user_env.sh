@@ -6,6 +6,7 @@ set -Eeuo pipefail
 readonly USERNAME="${USERNAME:-illus}"
 readonly USER_UID="${USER_UID:-1000}"
 readonly USER_GID="${USER_GID:-1000}"
+readonly SCRIPT_PATH="${BASH_SOURCE[0]}"
 
 fct_die() {
     local message="${1}"
@@ -14,40 +15,44 @@ fct_die() {
     exit 1
 }
 
+fct_get_script_dir() {
+    local dir=""
+    local source="${SCRIPT_PATH}"
+
+    dir="${source%/*}"
+    if [[ "${dir}" == "${source}" ]]; then
+        dir="."
+    fi
+
+    (cd "${dir}" >/dev/null 2>&1 && pwd -P)
+}
+
+SCRIPT_DIR="$(fct_get_script_dir)"
+readonly SCRIPT_DIR
+
 fct_create_user() {
     if ! getent group "${USER_GID}" >/dev/null; then
         groupadd --gid "${USER_GID}" "${USERNAME}"
     fi
 
-    if ! id --user "${USERNAME}" >/dev/null 2>&1; then
-        useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /usr/bin/zsh "${USERNAME}"
+    if id --user "${USERNAME}" >/dev/null 2>&1; then
+        return 0
     fi
+
+    if getent passwd "${USER_UID}" >/dev/null; then
+        fct_die "USER_UID already exists in the image: ${USER_UID}"
+    fi
+
+    useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /usr/bin/zsh "${USERNAME}"
 }
 
 fct_write_shell_config() {
+    local config_dir="${SCRIPT_DIR}/config"
     local home_dir="/home/${USERNAME}"
 
-    cat >"${home_dir}/.zshrc" <<'EOF'
-export EDITOR=nvim
-export VISUAL=nvim
-export GIT_EDITOR=nvim
-
-alias vi='nvim'
-alias vim='nvim'
-alias lg='lazygit'
-
-PROMPT="%n@%m:%~%# "
-EOF
-
-    cat >"${home_dir}/.bashrc" <<'EOF'
-export EDITOR=nvim
-export VISUAL=nvim
-export GIT_EDITOR=nvim
-
-alias vi='nvim'
-alias vim='nvim'
-alias lg='lazygit'
-EOF
+    install -m 0644 "${config_dir}/zshrc" "${home_dir}/.zshrc"
+    install -m 0644 "${config_dir}/bashrc" "${home_dir}/.bashrc"
+    install -m 0644 "${config_dir}/starship.toml" "${home_dir}/.config/starship.toml"
 }
 
 fct_configure_git() {
@@ -83,7 +88,7 @@ fct_prepare_home() {
     mkdir -p \
         "${home_dir}/workspace" \
         "${home_dir}/.cache/ccache" \
-        "${home_dir}/.config" \
+        "${home_dir}/.config/opencode" \
         "${home_dir}/.ssh"
     chmod 700 "${home_dir}/.ssh"
 }
@@ -91,14 +96,7 @@ fct_prepare_home() {
 fct_fix_ownership() {
     local home_dir="/home/${USERNAME}"
 
-    chown -R "${USER_UID}:${USER_GID}" \
-        "${home_dir}/workspace" \
-        "${home_dir}/.cache" \
-        "${home_dir}/.config" \
-        "${home_dir}/.ssh" \
-        "${home_dir}/.bashrc" \
-        "${home_dir}/.gitconfig" \
-        "${home_dir}/.zshrc"
+    chown -R "${USER_UID}:${USER_GID}" "${home_dir}"
 }
 
 fct_validate_inputs() {
