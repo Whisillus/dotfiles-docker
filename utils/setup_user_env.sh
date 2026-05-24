@@ -40,7 +40,9 @@ alias ll='ls -alF'
 alias l='ll'
 alias s='ls'
 
-PROMPT="%n@%m:%~%# "
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init zsh)"
+fi
 EOF
 
     cat >"${home_dir}/.bashrc" <<'EOF'
@@ -55,6 +57,41 @@ alias ls='ls --color=auto'
 alias ll='ls -alF'
 alias l='ll'
 alias s='ls'
+
+if command -v starship >/dev/null 2>&1; then
+    eval "$(starship init bash)"
+fi
+EOF
+
+    cat >"${home_dir}/.config/starship.toml" <<'EOF'
+add_newline = false
+format = "$username:$directory$git_branch$git_status$python$character"
+
+[character]
+success_symbol = ">"
+error_symbol = ">"
+
+[directory]
+format = "[$path]($style)"
+style = "bold yellow"
+truncation_length = 3
+
+[git_branch]
+format = " on [$branch]($style)"
+style = "bold purple"
+
+[git_status]
+format = " [$all_status$ahead_behind]($style)"
+style = "bold red"
+
+[python]
+format = " [py $version]($style)"
+style = "bold green"
+
+[username]
+format = "[$user]($style)"
+show_always = true
+style_user = "bold cyan"
 EOF
 }
 

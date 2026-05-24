@@ -7,6 +7,7 @@ ARG TORCH_VARIANT=cpu
 ARG TORCH_CUDA_FLAVOR=cu128
 ARG NEOVIM_VERSION=0.11.6
 ARG LAZYGIT_VERSION=0.61.1
+ARG STARSHIP_VERSION=1.25.1
 ARG USERNAME=illus
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -66,7 +67,8 @@ RUN apt-get -o Acquire::Retries=5 update \
 
 RUN chmod +x /tmp/docker-utils/*.sh \
     && NEOVIM_VERSION="${NEOVIM_VERSION}" /tmp/docker-utils/install_neovim.sh \
-    && LAZYGIT_VERSION="${LAZYGIT_VERSION}" /tmp/docker-utils/install_lazygit.sh
+    && LAZYGIT_VERSION="${LAZYGIT_VERSION}" /tmp/docker-utils/install_lazygit.sh \
+    && STARSHIP_VERSION="${STARSHIP_VERSION}" /tmp/docker-utils/install_starship.sh
 
 RUN set -eux; \
     python -m pip install --upgrade pip setuptools wheel; \
