@@ -6,6 +6,7 @@ set -Eeuo pipefail
 readonly USERNAME="${USERNAME:-illus}"
 readonly USER_UID="${USER_UID:-1000}"
 readonly USER_GID="${USER_GID:-1000}"
+readonly SCRIPT_PATH="${BASH_SOURCE[0]}"
 
 fct_die() {
     local message="${1}"
@@ -13,6 +14,21 @@ fct_die() {
     printf 'ERROR: %s\n' "${message}" >&2
     exit 1
 }
+
+fct_get_script_dir() {
+    local dir=""
+    local source="${SCRIPT_PATH}"
+
+    dir="${source%/*}"
+    if [[ "${dir}" == "${source}" ]]; then
+        dir="."
+    fi
+
+    (cd "${dir}" >/dev/null 2>&1 && pwd -P)
+}
+
+SCRIPT_DIR="$(fct_get_script_dir)"
+readonly SCRIPT_DIR
 
 fct_create_user() {
     if ! getent group "${USER_GID}" >/dev/null; then
@@ -31,74 +47,12 @@ fct_create_user() {
 }
 
 fct_write_shell_config() {
+    local config_dir="${SCRIPT_DIR}/config"
     local home_dir="/home/${USERNAME}"
 
-    cat >"${home_dir}/.zshrc" <<'EOF'
-export EDITOR=nvim
-export VISUAL=nvim
-export GIT_EDITOR=nvim
-
-alias vi='nvim'
-alias vim='nvim'
-alias lg='lazygit'
-alias ls='ls --color=auto'
-alias ll='ls -alF'
-alias l='ll'
-alias s='ls'
-
-if command -v starship >/dev/null 2>&1; then
-    eval "$(starship init zsh)"
-fi
-EOF
-
-    cat >"${home_dir}/.bashrc" <<'EOF'
-export EDITOR=nvim
-export VISUAL=nvim
-export GIT_EDITOR=nvim
-
-alias vi='nvim'
-alias vim='nvim'
-alias lg='lazygit'
-alias ls='ls --color=auto'
-alias ll='ls -alF'
-alias l='ll'
-alias s='ls'
-
-if command -v starship >/dev/null 2>&1; then
-    eval "$(starship init bash)"
-fi
-EOF
-
-    cat >"${home_dir}/.config/starship.toml" <<'EOF'
-add_newline = false
-format = "$username:$directory$git_branch$git_status$python$character"
-
-[character]
-success_symbol = ">"
-error_symbol = ">"
-
-[directory]
-format = "[$path]($style)"
-style = "bold yellow"
-truncation_length = 3
-
-[git_branch]
-format = " on [$branch]($style)"
-style = "bold purple"
-
-[git_status]
-format = " [$all_status$ahead_behind]($style)"
-style = "bold red"
-
-[python]
-format = " [py $version]($style)"
-style = "bold green"
-
-[username]
-format = "[$user]($style)"
-show_always = true
-style_user = "bold cyan"
-EOF
+    install -m 0644 "${config_dir}/zshrc" "${home_dir}/.zshrc"
+    install -m 0644 "${config_dir}/bashrc" "${home_dir}/.bashrc"
+    install -m 0644 "${config_dir}/starship.toml" "${home_dir}/.config/starship.toml"
 }
 
 fct_configure_git() {
