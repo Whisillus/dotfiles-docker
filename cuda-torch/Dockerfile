@@ -30,6 +30,7 @@ COPY utils/ /tmp/docker-utils/
 
 RUN apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+        autojump \
         build-essential \
         ca-certificates \
         ccache \
@@ -63,6 +64,9 @@ RUN apt-get -o Acquire::Retries=5 update \
         vim \
         zip \
         zsh \
+        zsh-autosuggestions \
+        zsh-completions \
+        zsh-syntax-highlighting \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
