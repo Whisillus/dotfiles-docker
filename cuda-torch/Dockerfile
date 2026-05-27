@@ -69,7 +69,6 @@ RUN apt-get -o Acquire::Retries=5 update \
         zip \
         zsh \
         zsh-autosuggestions \
-        zsh-completions \
         zsh-syntax-highlighting \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
