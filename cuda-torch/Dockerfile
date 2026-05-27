@@ -6,6 +6,7 @@ ARG TORCHAUDIO_VERSION=2.8.0
 ARG TVM_FFI_VERSION=0.1.11
 ARG TORCH_C_DLPACK_EXT_VERSION=0.1.5
 ARG PRE_COMMIT_VERSION=4.6.0
+ARG PYTEST_VERSION=9.0.2
 ARG TORCH_VARIANT=cpu
 ARG TORCH_CUDA_FLAVOR=cu128
 ARG NEOVIM_VERSION=0.11.6
@@ -93,9 +94,11 @@ RUN set -eux; \
     python -m pip install \
         "apache-tvm-ffi==${TVM_FFI_VERSION}" \
         "torch-c-dlpack-ext==${TORCH_C_DLPACK_EXT_VERSION}" \
-        "pre-commit==${PRE_COMMIT_VERSION}"; \
+        "pre-commit==${PRE_COMMIT_VERSION}" \
+        "pytest==${PYTEST_VERSION}"; \
     python -c 'import tvm_ffi'; \
-    pre-commit --version
+    pre-commit --version; \
+    pytest --version
 
 RUN /tmp/docker-utils/install_opencode.sh
 
