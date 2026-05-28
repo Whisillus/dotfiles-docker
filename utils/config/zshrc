@@ -10,6 +10,13 @@ alias ll='ls -alF'
 alias l='ll'
 alias s='ls'
 
+if [[ -d /usr/share/zsh/vendor-completions ]]; then
+    fpath=(/usr/share/zsh/vendor-completions $fpath)
+fi
+
+autoload -Uz compinit
+compinit
+
 # Keep zsh line editing close to the default macOS shell experience.
 bindkey -e
 bindkey '^P' up-line-or-history
@@ -38,6 +45,20 @@ bindkey '^[[4~' end-of-line
 bindkey '^[[7~' beginning-of-line
 bindkey '^[[8~' end-of-line
 
+if [[ -r /usr/share/autojump/autojump.zsh ]]; then
+    source /usr/share/autojump/autojump.zsh
+elif [[ -r /usr/share/autojump/autojump.sh ]]; then
+    source /usr/share/autojump/autojump.sh
+fi
+
+if [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+    source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+
 if command -v starship >/dev/null 2>&1; then
     eval "$(starship init zsh)"
+fi
+
+if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+    source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi

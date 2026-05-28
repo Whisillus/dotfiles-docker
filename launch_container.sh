@@ -13,7 +13,7 @@ ENABLE_GPU=0
 CONTAINER_NAME="dev-env"
 ENABLE_SSH=1
 IMAGE_NAME="cuda-torch"
-PROJECT_DIR=""
+WORKSPACE_DIR=""
 
 fct_usage() {
     cat <<EOF
@@ -23,7 +23,7 @@ Usage:
 Options:
   -n, --name <name>        Container name (default: dev-env)
   -i, --image <image>      Docker image to launch (default: cuda-torch)
-  -p, --project <path>     Project directory to mount (default: current directory)
+  -w, --workspace <path>   Workspace directory to mount (default: ~/workspace)
       --no-ssh             Do not forward SSH agent into the container
       --gpu                Pass --gpus all to docker run
   -h, --help               Show this help and exit
@@ -31,7 +31,7 @@ Options:
 Examples:
   ${SCRIPT_NAME}
   ${SCRIPT_NAME} -n my-dev-env
-  ${SCRIPT_NAME} -i cuda-torch -p ~/workspace/my-project
+  ${SCRIPT_NAME} -i cuda-torch -w ~/workspace
 EOF
 }
 
@@ -65,14 +65,14 @@ fct_parse_args() {
             IMAGE_NAME="${2}"
             shift 2
             ;;
-        -p | --project)
+        -w | --workspace)
             if [[ $# -lt 2 ]]; then
-                fct_die "Option ${1} requires a project path."
+                fct_die "Option ${1} requires a workspace path."
             fi
             if [[ "${2}" == -* ]]; then
-                fct_die "Option ${1} requires a project path."
+                fct_die "Option ${1} requires a workspace path."
             fi
-            PROJECT_DIR="${2}"
+            WORKSPACE_DIR="${2}"
             shift 2
             ;;
         --no-ssh)
@@ -94,17 +94,24 @@ fct_parse_args() {
     done
 }
 
-fct_resolve_project_dir() {
-    local project_path="${1}"
+fct_resolve_workspace_dir() {
+    local workspace_arg="${1}"
+    local workspace_path=""
 
-    if [[ -z "${project_path}" ]]; then
-        project_path="."
+    if [[ -n "${workspace_arg}" ]]; then
+        workspace_path="${workspace_arg}"
+    elif [[ -n "${HOST_WORKSPACE_ROOT:-}" ]]; then
+        workspace_path="${HOST_WORKSPACE_ROOT}"
+    elif [[ -n "${HOME:-}" ]]; then
+        workspace_path="${HOME}/workspace"
+    else
+        fct_die "HOME is not set; cannot locate workspace."
     fi
-    if [[ ! -d "${project_path}" ]]; then
-        fct_die "Project directory not found: ${project_path}"
+    if [[ ! -d "${workspace_path}" ]]; then
+        fct_die "Workspace directory not found: ${workspace_path}"
     fi
 
-    (cd "${project_path}" >/dev/null 2>&1 && pwd -P)
+    (cd "${workspace_path}" >/dev/null 2>&1 && pwd -P)
 }
 
 fct_append_ssh_args() {
@@ -153,21 +160,14 @@ fct_append_opencode_config_args() {
 }
 
 fct_launch_container() {
-    local container_workdir=""
     local container_id=""
-    local project_basename=""
-    local resolved_project_dir=""
+    local resolved_workspace_dir=""
 
     if ! command -v docker >/dev/null 2>&1; then
         fct_die "docker command not found."
     fi
 
-    resolved_project_dir="$(fct_resolve_project_dir "${PROJECT_DIR}")"
-    project_basename="${resolved_project_dir##*/}"
-    if [[ -z "${project_basename}" ]]; then
-        project_basename="project"
-    fi
-    container_workdir="${CONTAINER_WORKSPACE_ROOT}/${project_basename}"
+    resolved_workspace_dir="$(fct_resolve_workspace_dir "${WORKSPACE_DIR}")"
     if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
         fct_die "Container already exists: ${CONTAINER_NAME}. Use 'docker exec -it ${CONTAINER_NAME} zsh' or remove it first."
     fi
@@ -179,8 +179,8 @@ fct_launch_container() {
     DOCKER_COMMAND+=(
         # Use a common terminfo entry so zsh line editing works in minimal images.
         -e "TERM=${CONTAINER_TERM}"
-        -v "${resolved_project_dir}:${container_workdir}"
-        -w "${container_workdir}"
+        -v "${resolved_workspace_dir}:${CONTAINER_WORKSPACE_ROOT}"
+        -w "${CONTAINER_WORKSPACE_ROOT}"
     )
     if [[ "${ENABLE_SSH}" -eq 1 ]]; then
         fct_append_ssh_args
@@ -190,7 +190,8 @@ fct_launch_container() {
 
     printf 'Launching Docker image: %s\n' "${IMAGE_NAME}" >&2
     printf 'Container name: %s\n' "${CONTAINER_NAME}" >&2
-    printf 'Mounting project: %s -> %s\n' "${resolved_project_dir}" "${container_workdir}" >&2
+    printf 'Mounting workspace: %s -> %s\n' "${resolved_workspace_dir}" "${CONTAINER_WORKSPACE_ROOT}" >&2
+    printf 'Working directory: %s\n' "${CONTAINER_WORKSPACE_ROOT}" >&2
     container_id="$("${DOCKER_COMMAND[@]}")"
     printf 'Container started: %s\n' "${container_id}" >&2
     printf 'Enter with: docker exec -it %s zsh\n' "${CONTAINER_NAME}" >&2

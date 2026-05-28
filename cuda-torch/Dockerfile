@@ -3,6 +3,10 @@ FROM nvcr.io/nvidia/cuda:12.9.1-devel-ubuntu22.04
 ARG TORCH_VERSION=2.8.0
 ARG TORCHVISION_VERSION=0.23.0
 ARG TORCHAUDIO_VERSION=2.8.0
+ARG TVM_FFI_VERSION=0.1.11
+ARG TORCH_C_DLPACK_EXT_VERSION=0.1.5
+ARG PRE_COMMIT_VERSION=4.6.0
+ARG PYTEST_VERSION=9.0.2
 ARG TORCH_VARIANT=cpu
 ARG TORCH_CUDA_FLAVOR=cu128
 ARG NEOVIM_VERSION=0.11.6
@@ -30,6 +34,7 @@ COPY utils/ /tmp/docker-utils/
 
 RUN apt-get -o Acquire::Retries=5 update \
     && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+        autojump \
         build-essential \
         ca-certificates \
         ccache \
@@ -63,6 +68,8 @@ RUN apt-get -o Acquire::Retries=5 update \
         vim \
         zip \
         zsh \
+        zsh-autosuggestions \
+        zsh-syntax-highlighting \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
@@ -82,7 +89,15 @@ RUN set -eux; \
         --index-url "${torch_index_url}" \
         "torch==${TORCH_VERSION}" \
         "torchvision==${TORCHVISION_VERSION}" \
-        "torchaudio==${TORCHAUDIO_VERSION}"
+        "torchaudio==${TORCHAUDIO_VERSION}"; \
+    python -m pip install \
+        "apache-tvm-ffi==${TVM_FFI_VERSION}" \
+        "torch-c-dlpack-ext==${TORCH_C_DLPACK_EXT_VERSION}" \
+        "pre-commit==${PRE_COMMIT_VERSION}" \
+        "pytest==${PYTEST_VERSION}"; \
+    python -c 'import tvm_ffi'; \
+    pre-commit --version; \
+    pytest --version
 
 RUN /tmp/docker-utils/install_opencode.sh
 
